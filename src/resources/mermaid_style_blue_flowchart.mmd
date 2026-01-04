@@ -1,0 +1,131 @@
+flowchart LR
+%% =========================================
+%%  Ultra-styled Mermaid (wide / LR layout)
+%%  Uses: subgraphs, classes, links, icons,
+%%  click, tooltips, linkStyle, theming hints
+%% =========================================
+
+%% --- Theme hints (works in many renderers) ---
+%%{init: {
+  "flowchart": {
+    "curve": "basis",
+    "nodeSpacing": 50,
+    "rankSpacing": 80,
+    "padding": 10
+  },
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Inter, ui-sans-serif, system-ui",
+    "fontSize": "14px",
+    "lineColor": "#6b7280",
+    "primaryColor": "#111827",
+    "primaryTextColor": "#f9fafb",
+    "primaryBorderColor": "#334155",
+    "tertiaryColor": "#0b1220"
+  }
+} }%%
+
+%% ===================
+%% Lanes / Subgraphs
+%% ===================
+subgraph L1[" Client / UI"]
+direction TB
+UI[" UI\n(Buttons, Forms)"]:::ui
+CLI[" CLI\n(Commands)"]:::ui
+end
+
+subgraph L2[" Orchestrator"]
+direction TB
+AG[" Agent\n(Decide → Call Tools)"]:::agent
+RULES[" Rules\n(Policies / Limits)"]:::note
+end
+
+subgraph L3[" Tools Layer"]
+direction TB
+T1["list_files\n(scan repo)"]:::tool
+T2["read_file\n(fetch content)"]:::tool
+T3["parse\n(extract symbols)"]:::tool
+T4["generate_mermaid\n(diagram code)"]:::tool
+T5["render\n(PNG/SVG)"]:::tool
+end
+
+subgraph L4[" External Systems"]
+direction TB
+GH["GitHub API"]:::external
+FS["Local FS"]:::external
+KROKI[" Kroki / Renderer"]:::external
+end
+
+subgraph L5[" Output"]
+direction TB
+MMD[" Mermaid Text"]:::artifact
+IMG[" Diagram Image"]:::artifact
+end
+
+%% ==========
+%% Flow
+%% ==========
+UI -->|"submit request"| AG
+CLI -->|"run command"| AG
+
+AG -->|"apply constraints"| RULES
+AG -->|"call"| T1
+T1 -->|"HTTP"| GH
+GH -->|"paths[]"| T1
+T1 -->|"selected paths"| AG
+
+AG -->|"read N files"| T2
+T2 -->|"HTTP"| GH
+T2 -->|"disk"| FS
+T2 -->|"contents"| AG
+
+AG -->|"extract relationships"| T3
+T3 -->|"graph model"| AG
+
+AG -->|"compose diagram"| T4
+T4 --> MMD
+MMD -->|"render"| T5
+T5 -->|"POST"| KROKI
+KROKI --> IMG
+
+%% ==========
+%% Clicks (optional)
+%% ==========
+click GH "https://api.github.com" "GitHub REST API"
+click KROKI "https://kroki.io" "Kroki rendering service"
+
+%% ==========
+%% Styling
+%% ==========
+classDef ui fill:#1f2937,stroke:#60a5fa,stroke-width:2px,color:#f9fafb,rx:14,ry:14;
+classDef agent fill:#111827,stroke:#a78bfa,stroke-width:2px,color:#f9fafb,rx:18,ry:18;
+classDef tool fill:#0b1220,stroke:#34d399,stroke-width:2px,color:#ecfeff,rx:14,ry:14;
+classDef external fill:#0b1220,stroke:#fbbf24,stroke-width:2px,color:#fffbeb,rx:14,ry:14;
+classDef artifact fill:#0b1220,stroke:#fb7185,stroke-width:2px,color:#fff1f2,rx:14,ry:14;
+classDef note fill:#0b1220,stroke:#94a3b8,stroke-dasharray: 6 4,color:#e2e8f0,rx:14,ry:14;
+
+%% Apply classes
+class UI,CLI ui
+class AG agent
+class T1,T2,T3,T4,T5 tool
+class GH,FS,KROKI external
+class MMD,IMG artifact
+class RULES note
+
+%% ==========
+%% Link styling (colors per segment)
+%% ==========
+linkStyle 0 stroke:#60a5fa,stroke-width:2px
+linkStyle 1 stroke:#60a5fa,stroke-width:2px
+linkStyle 2 stroke:#a78bfa,stroke-width:2px,stroke-dasharray: 5 3
+linkStyle 3 stroke:#34d399,stroke-width:2px
+linkStyle 4 stroke:#fbbf24,stroke-width:2px
+linkStyle 5 stroke:#fbbf24,stroke-width:2px
+linkStyle 6 stroke:#34d399,stroke-width:2px
+linkStyle 7 stroke:#fbbf24,stroke-width:2px
+linkStyle 8 stroke:#94a3b8,stroke-width:2px
+linkStyle 9 stroke:#34d399,stroke-width:2px
+linkStyle 10 stroke:#fb7185,stroke-width:2px
+linkStyle 11 stroke:#fb7185,stroke-width:2px
+linkStyle 12 stroke:#fbbf24,stroke-width:2px
+linkStyle 13 stroke:#fb7185,stroke-width:2px
