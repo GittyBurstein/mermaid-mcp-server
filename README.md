@@ -130,7 +130,7 @@ Accepts Mermaid text, renders it to a PNG via Kroki, returns `ImageContent`, and
 ```text
 .
 ├── README.md
-├── requirements.txt
+├── pyproject.toml
 ├── .env.example
 ├── .gitignore
 └── src/
