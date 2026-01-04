@@ -4,7 +4,7 @@ import os
 import re
 import httpx
 from typing import List, Optional, Tuple
-from core.errors import ExternalServiceError, NotFoundError, ValidationError
+from core.errors import NotFoundError, ValidationError
 
 # --- Constants & Helpers ---
 _REPO_URL_RE = re.compile(r"^https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$")

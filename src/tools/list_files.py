@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from clients.github_client import GitHubClient  
+from clients.github_client import GitHubClient 
 from config import HTTP_VERIFY, PROJECT_ROOT
 from core.errors import ValidationError
 from core.models import SourceType

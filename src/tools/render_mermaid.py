@@ -14,7 +14,6 @@ from core.errors import AccessDeniedError, ValidationError
 
 
 def _sanitize_filename_stem(title: str) -> str:
-    # Keep ASCII-ish stems to avoid weird filenames.
     s = (title or "").strip()
     if not s:
         return "diagram"
@@ -40,7 +39,7 @@ def _safe_out_dir() -> Path:
 
 
 def register(mcp: FastMCP, *, kroki_client: Optional[KrokiClient] = None) -> None:  # CHANGED (DI)
-    client = kroki_client or KrokiClient(  # CHANGED (DI)
+    client = kroki_client or KrokiClient(  
         base_url=KROKI_BASE_URL,
         timeout=KROKI_TIMEOUT,
         verify=HTTP_VERIFY,

@@ -18,6 +18,5 @@ def register_resources(mcp: FastMCP) -> None:
         description="Canonical blue Mermaid flowchart style"
     )
     def blue_flowchart_style() -> str:
-        # THIS is where the .mmd file becomes a RESOURCE
         path = BASE_DIR / "mermaid_style_blue_flowchart.mmd"
         return path.read_text(encoding="utf-8")

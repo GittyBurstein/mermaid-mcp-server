@@ -9,29 +9,40 @@ SourceType = Literal["local", "github"]
 
 @dataclass(frozen=True)
 class SourceRequest:
-    # Common
+    """Request model for listing files from a source.
+
+    Field groups:
+    - Common: source
+    - Local: root, glob
+    - GitHub: repo_url, ref
+    - Shared: recursive
+    """
+
     source: SourceType
 
-    # Local
     root: str = "."
     glob: str = "**/*"
 
-    # GitHub
     repo_url: Optional[str] = None
     ref: str = "main"
 
-    # Shared
     recursive: bool = True
 
 
 @dataclass(frozen=True)
 class ReadRequest:
+    """Request model for reading a file from a source.
+
+    Field groups:
+    - Common: source, path
+    - GitHub: repo_url, ref
+    - Shared: max_chars
+    """
+
     source: SourceType
     path: str
 
-    # GitHub
     repo_url: Optional[str] = None
     ref: str = "main"
 
-    # Shared
     max_chars: int = 200_000

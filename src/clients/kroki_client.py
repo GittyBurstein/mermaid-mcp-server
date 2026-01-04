@@ -6,7 +6,6 @@ from core.errors import ExternalServiceError, ValidationError
 
 
 class KrokiClient:
-
     def __init__(self, *, base_url: str, timeout: float, verify: bool = False) -> None:
         self._base_url = (base_url or "").rstrip("/")
         self._timeout = timeout

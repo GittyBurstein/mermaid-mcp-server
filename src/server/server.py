@@ -1,8 +1,8 @@
 from mcp.server.fastmcp import FastMCP
 
-from clients.github_client import GitHubClient  # CHANGED (DI): new import
-from clients.kroki_client import KrokiClient  # CHANGED (DI): new import
-from config import HTTP_VERIFY, KROKI_BASE_URL, KROKI_TIMEOUT  # CHANGED (DI): add imports
+from clients.github_client import GitHubClient
+from clients.kroki_client import KrokiClient
+from config import HTTP_VERIFY, KROKI_BASE_URL, KROKI_TIMEOUT
 
 from tools.list_files import register as register_list_files
 from tools.read_file import register as register_read_file
@@ -15,12 +15,12 @@ mcp = FastMCP("mermaid-mcp")
 
 
 def register_tools() -> None:
-    github_client = GitHubClient(verify=HTTP_VERIFY)  # CHANGED (DI): create once
+    github_client = GitHubClient(verify=HTTP_VERIFY)  
     kroki_client = KrokiClient(base_url=KROKI_BASE_URL, timeout=KROKI_TIMEOUT, verify=HTTP_VERIFY)  # CHANGED (DI)
 
-    register_list_files(mcp, github_client=github_client)  # CHANGED (DI)
-    register_read_file(mcp, github_client=github_client)  # CHANGED (DI)
-    register_render_mermaid(mcp, kroki_client=kroki_client)  # CHANGED (DI)
+    register_list_files(mcp, github_client=github_client)
+    register_read_file(mcp, github_client=github_client)
+    register_render_mermaid(mcp, kroki_client=kroki_client)
 
 
 def register_all() -> None:

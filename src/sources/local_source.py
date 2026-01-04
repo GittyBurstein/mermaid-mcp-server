@@ -39,7 +39,7 @@ class LocalSource:
             out: List[str] = []
             for p in base.glob(glob):
                 if p.is_file():
-                  out.append(p.relative_to(base).as_posix())
+                   out.append(p.relative_to(base).as_posix())
             return sorted(out)
 
         return await asyncio.to_thread(_do)

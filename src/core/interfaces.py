@@ -4,8 +4,7 @@ from typing import List, Protocol
 
 
 class FileSource(Protocol):
-    # Contract for any file source (local, GitHub, etc.)
-
+    """Contract for any file source (local, GitHub, etc.)."""
     async def list_files(
         self,
         *,

@@ -4,7 +4,7 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from clients.github_client import GitHubClient  # CHANGED (DI): new import
+from clients.github_client import GitHubClient  
 from config import HTTP_VERIFY, MAX_FILE_CHARS, PROJECT_ROOT
 from core.errors import ValidationError
 from core.models import SourceType
@@ -20,7 +20,6 @@ def register(mcp: FastMCP, *, github_client: Optional[GitHubClient] = None) -> N
         ref: str = "main",
         max_chars: int = MAX_FILE_CHARS,
     ) -> str:
-        # English comments only:
         if not path or not path.strip():
             raise ValidationError("Missing file path")
 
@@ -33,7 +32,7 @@ def register(mcp: FastMCP, *, github_client: Optional[GitHubClient] = None) -> N
             repo_url=repo_url,
             ref=ref,
             http_verify=HTTP_VERIFY,
-            github_client=github_client,  # CHANGED (DI): pass injected client down
+            github_client=github_client,
         )
 
         return await src.read_file(path=path, max_chars=max_chars)

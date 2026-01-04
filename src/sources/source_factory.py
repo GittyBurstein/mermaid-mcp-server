@@ -29,7 +29,7 @@ def get_file_source(
     if source == "github":
         if not repo_url or not repo_url.strip():
             raise ValidationError("Missing repo_url for github source")
-        client = github_client or GitHubClient(timeout=github_timeout, verify=http_verify)  # CHANGED (DI)
+        client = github_client or GitHubClient(timeout=github_timeout, verify=http_verify)  
         return GitHubSource(client=client, repo_url=repo_url, ref=ref)
 
     raise ValidationError(f"Unknown source: {source}")
