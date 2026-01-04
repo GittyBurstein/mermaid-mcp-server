@@ -7,6 +7,13 @@ from clients.github_client import GitHubClient
 from core.errors import ValidationError
 
 
+"""GitHub-backed FileSource implementation.
+
+Wraps the GitHubClient to provide a FileSource-compatible API for
+listing and reading repository files while applying root/glob filtering.
+"""
+
+
 class GitHubSource:
     # GitHub implementation of FileSource (wraps GitHubClient).
 

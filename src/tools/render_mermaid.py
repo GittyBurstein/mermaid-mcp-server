@@ -1,3 +1,9 @@
+"""MCP tool to render Mermaid text into a PNG image using Kroki.
+
+Registers 'render_mermaid' which calls Kroki, saves the PNG to disk
+and returns an ImageContent payload usable by the MCP protocol.
+"""
+
 from __future__ import annotations
 
 import base64

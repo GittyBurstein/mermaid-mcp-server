@@ -1,4 +1,10 @@
-# src/config.py
+"""Configuration and environment helpers for the project.
+
+Provides small helpers to read typed environment variables and exposes
+project-level configuration constants used across the codebase (e.g.
+PROJECT_ROOT, HTTP_VERIFY, KROKI_BASE_URL, timeouts and limits).
+"""
+
 from __future__ import annotations
 
 import os

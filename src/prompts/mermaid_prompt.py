@@ -1,3 +1,9 @@
+"""Canonical Mermaid generation prompt registration.
+
+Defines the strict, canonical prompt used by the MCP server to
+generate Mermaid diagrams following the project's workflow rules.
+"""
+
 from mcp.server.fastmcp import FastMCP
 
 

@@ -7,6 +7,13 @@ from typing import List
 from core.errors import AccessDeniedError, NotFoundError, ValidationError
 
 
+"""Local filesystem FileSource implementation.
+
+Provides safe, sandboxed access to files under PROJECT_ROOT with
+strong containment checks to prevent access outside the project.
+"""
+
+
 class LocalSource:
     # Local filesystem implementation of FileSource.
 

@@ -1,3 +1,9 @@
+"""Client for rendering Mermaid diagrams via a Kroki service.
+
+Provides a simple async method to send Mermaid text to Kroki and
+receive PNG bytes, with errors mapped to project-specific exceptions.
+"""
+
 from __future__ import annotations
 
 import httpx

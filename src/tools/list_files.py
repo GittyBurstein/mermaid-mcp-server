@@ -1,3 +1,9 @@
+"""MCP tool that lists files from a configured source.
+
+Registers the 'list_files' tool which adapts FileSource implementations
+(local/github) to the MCP tool interface used by prompts and agents.
+"""
+
 from __future__ import annotations
 
 from typing import List, Optional

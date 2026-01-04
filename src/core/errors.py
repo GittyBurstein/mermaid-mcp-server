@@ -1,3 +1,9 @@
+"""Project-specific exception hierarchy.
+
+Defines semantic exceptions used throughout the server to communicate
+validation, access, external service and not-found conditions.
+"""
+
 from __future__ import annotations
 
 

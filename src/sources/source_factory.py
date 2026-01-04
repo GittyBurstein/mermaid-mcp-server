@@ -1,3 +1,9 @@
+"""Factory for selecting the appropriate FileSource implementation.
+
+Exposes get_file_source which returns either a LocalSource or
+GitHubSource based on the requested source type.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path

@@ -157,32 +157,36 @@ Accepts Mermaid text, renders it to a PNG via Kroki, returns `ImageContent`, and
 
 ```
 ---
-## Installation & Setup
+## Installation & Setup 
 
 ### 1) Clone the repo
 ```bash
 git clone <REPO_URL>
 cd <REPO_DIR>
 ```
+
 ### 2) Create a venv + install dependencies
 ##### Windows (PowerShell):
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install .[dev]
 ```
 ##### Windows (CMD):
 ```cmd
 python -m venv .venv
 .venv\Scripts\activate.bat
-pip install -r requirements.txt
+pip install .[dev]
 ```
 ##### macOS/Linux:
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install .[dev]
 ```
+
+> This installs runtime dependencies and development extras (tests).
+
 ### 3) Configuration (Environment Variables)
 You can set env vars in your shell OR in the MCP client config that launches the server.
 
@@ -276,6 +280,20 @@ After saving the config file, fully close Claude Desktop and reopen it so the se
 Open Claude Desktop and check that the server tools appear (e.g. `list_files`, `read_file`, `render_mermaid`).
 
 ---
+## Using the canonical prompt
+
+This project includes a canonical system prompt used to generate Mermaid diagrams in a consistent, tool-driven way. The prompt is registered on the MCP server under the name `generate_mermaid_canonical` and is defined in `src/prompts/mermaid_prompt.py`.
+
+Two common ways to use it:
+
+- Client-supported prompts (recommended): If your MCP client supports server-side prompts, select the server `mermaid-mcp`, pick the prompt named `generate_mermaid_canonical` from the prompt list, and run it as the agent's system/instruction before invoking the tools. Using the server-registered prompt ensures agents always get the latest prompt text.
+
+- Copy & paste: If your client does not support server-side prompts, open `src/prompts/mermaid_prompt.py`, copy the prompt text, and paste it into the agent's system message or save it locally as a preset. Keep in mind you will need to update your local copy when the repository prompt changes.
+
+Notes:
+- The canonical prompt enforces strict tool usage and requires the canonical style resource `mermaid://styles/blue-flowchart` to be read and embedded unchanged into generated diagrams.
+- The prompt expects the agent to follow the pipeline: `list_files` → `read_file` → generate Mermaid → `render_mermaid`.
+
 ## Testing
 
 Run the test suite:

@@ -1,3 +1,10 @@
+"""GitHub API client utilities.
+
+This module provides a lightweight async client wrapper around the
+GitHub API for listing repository files and reading file contents. It
+also includes a small helper to parse GitHub repository URLs.
+"""
+
 from __future__ import annotations
 
 import os

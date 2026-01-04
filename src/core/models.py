@@ -1,3 +1,9 @@
+"""Immutable dataclasses for request models used by the MCP tools.
+
+Includes models describing file-source selection and read/list
+requests (SourceRequest, ReadRequest) to keep the tool APIs explicit.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

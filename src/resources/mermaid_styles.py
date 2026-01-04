@@ -1,3 +1,9 @@
+"""Mermaid style resources for the MCP server.
+
+Registers canonical Mermaid style resources that prompts and tools
+can consume via the MCP resource API.
+"""
+
 # src/server/resources/mermaid_styles.py
 
 from pathlib import Path

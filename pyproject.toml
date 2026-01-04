@@ -1,0 +1,20 @@
+[project]
+name = "mermaid-mcp-server"
+version = "0.0.0"
+description = "MCP server to turn codebases into Mermaid diagrams and PNGs via Kroki"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "httpx>=0.24",
+  "mcp",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+  "pytest-asyncio>=0.20",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

@@ -1,3 +1,9 @@
+"""MCP tool that reads text files from a configured source.
+
+Registers the 'read_file' tool which returns file contents with a
+max size and validates inputs before delegating to a FileSource.
+"""
+
 from __future__ import annotations
 
 from typing import Optional

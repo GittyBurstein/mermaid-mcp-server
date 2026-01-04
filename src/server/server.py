@@ -1,3 +1,9 @@
+"""Server bootstrap for the Mermaid MCP service.
+
+Creates the FastMCP instance, wires clients and tools, registers
+resources and prompts, and starts the MCP server (stdio transport).
+"""
+
 from mcp.server.fastmcp import FastMCP
 
 from clients.github_client import GitHubClient
