@@ -97,7 +97,7 @@ def _install_fake_modules(monkeypatch, captures: dict):
     tools_read_mod = types.ModuleType("tools.read_file")
     tools_render_mod = types.ModuleType("tools.render_mermaid")
     res_mod = types.ModuleType("resources.mermaid_styles")
-    prompts_mod = types.ModuleType("prompts.mermaid_prompts")
+    prompts_mod = types.ModuleType("prompts.mermaid_prompt")
 
     def register_list_files(mcp, *, github_client=None):
         captures["register_list_files_calls"] = captures.get("register_list_files_calls", []) + [
@@ -130,7 +130,7 @@ def _install_fake_modules(monkeypatch, captures: dict):
     monkeypatch.setitem(sys.modules, "tools.read_file", tools_read_mod)
     monkeypatch.setitem(sys.modules, "tools.render_mermaid", tools_render_mod)
     monkeypatch.setitem(sys.modules, "resources.mermaid_styles", res_mod)
-    monkeypatch.setitem(sys.modules, "prompts.mermaid_prompts", prompts_mod)
+    monkeypatch.setitem(sys.modules, "prompts.mermaid_prompt", prompts_mod)
 
 
 def _load_server_module(monkeypatch, captures: dict):
