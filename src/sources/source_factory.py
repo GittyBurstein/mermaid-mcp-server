@@ -18,7 +18,7 @@ from sources.local_source import LocalSource
 
 
 def get_file_source(
-    source: SourceType,
+    source: Optional[SourceType] = None,
     *,
     project_root: Path,
     repo_url: Optional[str] = None,
@@ -27,15 +27,20 @@ def get_file_source(
     http_verify: bool = False,
     github_client: Optional[GitHubClient] = None,  
 ) -> FileSource:
-    # Factory that returns the correct FileSource implementation.
+    """
+    Factory that returns the correct FileSource implementation.
+    
+    Priority Logic:
+    1. If a repo_url is provided -> Use GitHubSource.
+    2. If source == "github" (explicitly requested) -> Use GitHubSource.
+    3. Default -> Use LocalSource.
+    """
 
-    if source == "local":
-        return LocalSource(project_root=project_root)
-
-    if source == "github":
+    if (repo_url and repo_url.strip()) or source == "github":
         if not repo_url or not repo_url.strip():
             raise ValidationError("Missing repo_url for github source")
-        client = github_client or GitHubClient(timeout=github_timeout, verify=http_verify)  
+        
+        client = github_client or GitHubClient(timeout=github_timeout, verify=http_verify)
         return GitHubSource(client=client, repo_url=repo_url, ref=ref)
 
-    raise ValidationError(f"Unknown source: {source}")
+    return LocalSource(project_root=project_root)
