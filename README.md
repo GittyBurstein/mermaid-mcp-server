@@ -417,33 +417,3 @@ Next, we plan to support more input sources beyond local folders and GitHub, so 
 
 This will build on a unified `Source` abstraction: each new source will implement the same contract (`list_files` and `read_file`), while the tools remain unchanged—extending support will require only adding a new source implementation and registering it in the factory.
 
-## Implementation notes (developer-facing)
-
-This repository includes a few implementation details worth knowing when running or extending the server:
-
-- GitHub client (`src/clients/github/client.py`): lightweight async client with small in-memory TTL caches for tree listings and file text, a concurrency cap (`asyncio.Semaphore`), a `core.pacing.Pacer` to prevent bursts, and a `core.rate_limiter.RateLimiter` helper to honor explicit server-side throttling signals (`Retry-After`, `X-RateLimit-Reset`). Raises project-specific exceptions on failures.
-
-- Ref resolution (`src/clients/github/refs.py`): resolves the requested ref and falls back to the repository default branch when needed.
-
-- Input normalization (`src/clients/github/inputs.py`): validates and normalizes `repo_url`, `ref`, and paths to keep GitHub calls predictable.
-
-- Caching (`src/core/cache.py`): `TTLCache` stores values with an expiration timestamp and evicts the oldest entries when the cache exceeds `maxsize`.
-
-- Rate limiting (`src/core/rate_limiter.py`): interprets GitHub throttling signals (429 + `Retry-After`, 403 + `X-RateLimit-Remaining=0` + `X-RateLimit-Reset`) and performs bounded sleeps to enable a single retry when appropriate.
-
-- Pacing (`src/core/pacing.py`): enforces a minimum interval between outbound requests to avoid burst traffic from concurrent tasks.
-
-- `src/tools/list_files.py`
-- `src/tools/read_file.py`
-- `src/tools/render_mermaid.py`
-- `src/clients/github_client.py`
-- `src/clients/kroki_client.py`
-- `src/sources/local_source.py`
-- `src/sources/github_source.py`
-- `src/core/cache.py`
-- `src/core/rate_limiter.py`
-
-These changes are documentation-only (no functional behavior was
-intentionally changed) and are intended to make the code easier to read
-and to help agents/LLMs use the tools without relying on external
-prompts.
