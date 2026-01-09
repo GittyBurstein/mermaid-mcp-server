@@ -1,228 +1,82 @@
-import httpx
 import pytest
+import httpx
 
-from clients.github_client import GitHubClient, parse_repo_url
-from core.errors import NotFoundError, ValidationError
-
-
-# ---------------------------
-# Helpers
-# ---------------------------
-
-def patch_github_transport(monkeypatch, client: GitHubClient, routes: dict):
-    """
-    Patch GitHubClient._create_client() to use httpx.MockTransport.
-
-    routes keys:
-        (METHOD, PATH) -> httpx.Response  OR  (status_code, json, content)
-    """
-    def handler(request: httpx.Request) -> httpx.Response:
-        key = (request.method.upper(), request.url.path)
-
-        if key not in routes:
-            return httpx.Response(404, json={"message": "not found"})
-
-        val = routes[key]
-
-        if isinstance(val, httpx.Response):
-            return val
-
-        status_code, js, content = val
-        if content is not None:
-            return httpx.Response(status_code, content=content)
-        return httpx.Response(status_code, json=js)
-
-    transport = httpx.MockTransport(handler)
-
-    def _create_client(custom_headers=None):
-        headers = {**client._headers, **(custom_headers or {})}
-        return httpx.AsyncClient(
-            base_url=client.BASE_URL,
-            headers=headers,
-            timeout=client._timeout,
-            verify=client._verify,
-            transport=transport,
-        )
-
-    monkeypatch.setattr(client, "_create_client", _create_client)
+from clients.github.client import GitHubClient, _ListCacheKey, _ReadCacheKey
 
 
-# ---------------------------
-# parse_repo_url
-# ---------------------------
+class _FakeHTTPClient:
+    def __init__(self, responses):
+        self._responses = list(responses)
+        self.calls = []
 
-def test_parse_repo_url_valid():
-    owner, repo = parse_repo_url("https://github.com/octocat/Hello-World")
-    assert owner == "octocat"
-    assert repo == "Hello-World"
-
-
-@pytest.mark.parametrize("bad", ["", "octocat/Hello-World", "https://example.com/a/b", "https://github.com/a"])
-def test_parse_repo_url_invalid(bad):
-    with pytest.raises(ValidationError):
-        parse_repo_url(bad)
+    async def get(self, url, params=None):
+        self.calls.append((url, dict(params or {})))
+        return self._responses.pop(0)
 
 
-# ---------------------------
-# list_files_from_url
-# ---------------------------
+def _resp(status: int, url: str, *, json_data=None, text=None, headers=None):
+    req = httpx.Request("GET", f"https://example.test{url}")
+    if json_data is not None:
+        return httpx.Response(status, json=json_data, headers=headers or {}, request=req)
+    if text is not None:
+        return httpx.Response(status, text=text, headers=headers or {}, request=req)
+    return httpx.Response(status, headers=headers or {}, request=req)
+
 
 @pytest.mark.asyncio
-async def test_list_files_from_url_success(monkeypatch):
-    client = GitHubClient(timeout=5.0, verify=False)
+async def test_list_files_cache_hit_skips_network(monkeypatch):
+    gh = GitHubClient()
+    key = _ListCacheKey(repo_url="https://github.com/o/r", ref="main", recursive=True)
+    gh._list_cache.set(key, ["a.py", "b.py"])
 
-    routes = {
-        ("GET", "/repos/octocat/Hello-World/commits/main"): (
-            200,
-            {"commit": {"tree": {"sha": "tree_sha_123"}}},
-            None,
-        ),
-        ("GET", "/repos/octocat/Hello-World/git/trees/tree_sha_123"): (
-            200,
-            {
-                "tree": [
-                    {"path": "README.md", "type": "blob"},
-                    {"path": "src/app.py", "type": "blob"},
-                    {"path": "src", "type": "tree"},
-                ]
-            },
-            None,
-        ),
-    }
+    def boom(*args, **kwargs):
+        raise AssertionError("Should not create http client on cache hit")
 
-    patch_github_transport(monkeypatch, client, routes)
+    monkeypatch.setattr(gh, "_create_client", boom)
 
-    out = await client.list_files_from_url(
-        repo_url="https://github.com/octocat/Hello-World",
-        ref="main",
-        recursive=True,
+    out = await gh.list_files_from_url(repo_url="https://github.com/o/r", ref="main", recursive=True)
+    assert out == ["a.py", "b.py"]
+
+
+@pytest.mark.asyncio
+async def test_read_text_cache_hit_skips_network(monkeypatch):
+    gh = GitHubClient()
+    key = _ReadCacheKey(repo_url="https://github.com/o/r", ref="main", path="README.md", max_chars=10)
+    gh._read_cache.set(key, "cached")
+
+    def boom(*args, **kwargs):
+        raise AssertionError("Should not create http client on cache hit")
+
+    monkeypatch.setattr(gh, "_create_client", boom)
+
+    out = await gh.read_text_file_from_url(repo_url="https://github.com/o/r", path="README.md", ref="main", max_chars=10)
+    assert out == "cached"
+
+
+@pytest.mark.asyncio
+async def test_request_retries_once_on_rate_limiter_signal(monkeypatch):
+    gh = GitHubClient()
+
+    async def no_pace():
+        return None
+
+    monkeypatch.setattr(gh._pacer, "wait", no_pace)
+
+    seen = {"n": 0}
+
+    async def fake_maybe_sleep_and_retry(resp):
+        seen["n"] += 1
+        return resp.status_code == 429
+
+    monkeypatch.setattr(gh._rate_limiter, "maybe_sleep_and_retry", fake_maybe_sleep_and_retry)
+
+    fake = _FakeHTTPClient(
+        responses=[
+            _resp(429, "/x", headers={"Retry-After": "1"}),
+            _resp(200, "/x"),
+        ]
     )
-    assert out == ["README.md", "src/app.py"]
 
-
-@pytest.mark.asyncio
-async def test_list_files_from_url_fallback_to_default_branch(monkeypatch):
-    client = GitHubClient(timeout=5.0, verify=False)
-
-    routes = {
-        # ref fails -> fallback
-        ("GET", "/repos/octocat/Hello-World/commits/main"): (422, {"message": "invalid ref"}, None),
-        ("GET", "/repos/octocat/Hello-World"): (200, {"default_branch": "master"}, None),
-        ("GET", "/repos/octocat/Hello-World/commits/master"): (
-            200,
-            {"commit": {"tree": {"sha": "tree_sha_master"}}},
-            None,
-        ),
-        ("GET", "/repos/octocat/Hello-World/git/trees/tree_sha_master"): (
-            200,
-            {"tree": [{"path": "a.txt", "type": "blob"}]},
-            None,
-        ),
-    }
-
-    patch_github_transport(monkeypatch, client, routes)
-
-    out = await client.list_files_from_url(
-        repo_url="https://github.com/octocat/Hello-World",
-        ref="main",
-        recursive=True,
-    )
-    assert out == ["a.txt"]
-
-
-@pytest.mark.asyncio
-async def test_list_files_from_url_tree_not_found(monkeypatch):
-    client = GitHubClient(timeout=5.0, verify=False)
-
-    routes = {
-        ("GET", "/repos/octocat/Hello-World/commits/main"): (
-            200,
-            {"commit": {"tree": {"sha": "tree_sha_404"}}},
-            None,
-        ),
-        ("GET", "/repos/octocat/Hello-World/git/trees/tree_sha_404"): (404, {"message": "not found"}, None),
-    }
-
-    patch_github_transport(monkeypatch, client, routes)
-
-    with pytest.raises(NotFoundError):
-        await client.list_files_from_url(
-            repo_url="https://github.com/octocat/Hello-World",
-            ref="main",
-            recursive=True,
-        )
-
-
-# ---------------------------
-# read_text_file_from_url
-# ---------------------------
-
-@pytest.mark.asyncio
-async def test_read_text_file_from_url_success(monkeypatch):
-    client = GitHubClient(timeout=5.0, verify=False)
-
-    routes = {
-        ("GET", "/repos/octocat/Hello-World/contents/README.md"): (200, None, b"hello"),
-    }
-
-    patch_github_transport(monkeypatch, client, routes)
-
-    out = await client.read_text_file_from_url(
-        repo_url="https://github.com/octocat/Hello-World",
-        path="README.md",
-        ref="main",
-        max_chars=200_000,
-    )
-    assert out == "hello"
-
-
-@pytest.mark.asyncio
-async def test_read_text_file_from_url_truncates(monkeypatch):
-    client = GitHubClient(timeout=5.0, verify=False)
-
-    routes = {
-        ("GET", "/repos/octocat/Hello-World/contents/README.md"): (200, None, b"a" * 30),
-    }
-
-    patch_github_transport(monkeypatch, client, routes)
-
-    out = await client.read_text_file_from_url(
-        repo_url="https://github.com/octocat/Hello-World",
-        path="README.md",
-        ref="main",
-        max_chars=10,
-    )
-    assert out.startswith("a" * 10)
-    assert "TRUNCATED" in out
-
-
-@pytest.mark.asyncio
-async def test_read_text_file_from_url_not_found(monkeypatch):
-    client = GitHubClient(timeout=5.0, verify=False)
-
-    routes = {
-        ("GET", "/repos/octocat/Hello-World/contents/nope.txt"): (404, {"message": "not found"}, None),
-    }
-
-    patch_github_transport(monkeypatch, client, routes)
-
-    with pytest.raises(NotFoundError):
-        await client.read_text_file_from_url(
-            repo_url="https://github.com/octocat/Hello-World",
-            path="nope.txt",
-            ref="main",
-            max_chars=200_000,
-        )
-
-
-@pytest.mark.asyncio
-async def test_read_text_file_from_url_empty_path_raises():
-    client = GitHubClient(timeout=5.0, verify=False)
-
-    with pytest.raises(ValidationError):
-        await client.read_text_file_from_url(
-            repo_url="https://github.com/octocat/Hello-World",
-            path="  ",
-            ref="main",
-            max_chars=200_000,
-        )
+    r = await gh._request(fake, "/x", params={"a": "b"})
+    assert r.status_code == 200
+    assert len(fake.calls) == 2

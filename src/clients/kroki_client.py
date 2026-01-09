@@ -18,6 +18,7 @@ class KrokiClient:
         self._verify = verify
 
     async def render_mermaid_png(self, mermaid: str) -> bytes:
+        # Validate input early to provide a clear error to callers
         code = (mermaid or "").strip()
         if not code:
             raise ValidationError("Mermaid code is empty")
@@ -25,6 +26,7 @@ class KrokiClient:
         url = f"{self._base_url}/mermaid/png"
 
         try:
+            # Use AsyncClient for non-blocking HTTP requests
             async with httpx.AsyncClient(timeout=self._timeout, verify=self._verify) as c:
                 r = await c.post(
                     url,
@@ -34,6 +36,7 @@ class KrokiClient:
                 r.raise_for_status()
                 return r.content
         except httpx.HTTPStatusError as e:
+            # Map downstream errors to project-specific exception
             raise ExternalServiceError(f"Kroki returned an error: {e}") from e
         except httpx.HTTPError as e:
             raise ExternalServiceError(f"Failed to call Kroki: {e}") from e

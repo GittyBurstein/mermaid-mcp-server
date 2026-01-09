@@ -80,7 +80,7 @@ def _install_fake_modules(monkeypatch, captures: dict):
     gh_client_mod.GitHubClient = FakeGitHubClient
     kroki_client_mod.KrokiClient = FakeKrokiClient
 
-    monkeypatch.setitem(sys.modules, "clients.github_client", gh_client_mod)
+    monkeypatch.setitem(sys.modules, "clients.github", gh_client_mod)
     monkeypatch.setitem(sys.modules, "clients.kroki_client", kroki_client_mod)
 
     # ---- Fake tools + resources + prompts ----

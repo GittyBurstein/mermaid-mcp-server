@@ -27,7 +27,7 @@ class LocalSource:
 
         p = (self._project_root / raw).resolve()
 
-        # Strong containment check
+        # Strong containment check to prevent directory traversal/outside access
         try:
             p.relative_to(self._project_root)
         except ValueError as e:
@@ -46,9 +46,11 @@ class LocalSource:
             out: List[str] = []
             for p in base.glob(glob):
                 if p.is_file():
+                   # Use POSIX-style paths to keep results stable across OSes
                    out.append(p.relative_to(base).as_posix())
             return sorted(out)
 
+        # Offload blocking filesystem IO to a thread to keep async loop responsive
         return await asyncio.to_thread(_do)
 
     async def read_file(self, *, path: str, max_chars: int) -> str:
@@ -60,8 +62,10 @@ class LocalSource:
             if not p.is_file():
                 raise ValidationError(f"Not a file: {path}")
 
+            # Read text with replacement to avoid decode errors on bad files
             data = p.read_text(encoding="utf-8", errors="replace")
             if len(data) > max_chars:
+                # Truncate long files to avoid returning huge payloads
                 return data[:max_chars] + "\n\n...[TRUNCATED]..."
             return data
 

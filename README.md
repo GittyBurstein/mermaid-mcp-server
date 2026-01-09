@@ -141,21 +141,45 @@ Accepts Mermaid text, renders it to a PNG via Kroki, returns `ImageContent`, and
     │   ├── list_files.py
     │   ├── read_file.py
     │   └── render_mermaid.py
-    ├── sources/                   # File sources (local / GitHub) behind one interface
+    ├── sources/                   # File sources behind one interface (Local / GitHub)
     │   ├── local_source.py
     │   ├── github_source.py
     │   └── source_factory.py
-    ├── core/                      # Shared types + interfaces
-    │   ├── interfaces.py          # Source contract used by tools
+    ├── core/                      # Contracts + primitives (interfaces, errors, cache, pacing, rate limiting)
+    │   ├── interfaces.py          # Source contract that shapes all implementations
     │   ├── models.py
-    │   └── errors.py
-    ├── clients/                   # API clients (GitHub / Kroki)
-    │   ├── github_client.py
-    │   └── kroki_client.py
-    ├── resources/                 # Mermaid styles/templates
-    └── prompts/                   # Prompt templates
-
+    │   ├── errors.py
+    │   ├── cache.py
+    │   ├── pacing.py
+    │   └── rate_limiter.py
+    ├── clients/                   # External API clients (kept thin; shared policies live in core)
+    │   ├── kroki_client.py
+    │   └── github/
+    │       ├── client.py          # HTTP + policy (cache/rate/pacing)
+    │       ├── inputs.py          # normalize/validate inputs
+    │       └── refs.py            # resolve refs (+ fallback)
+    ├── resources/
+    └── prompts/
 ```
+
+### Docker (optional)
+
+Build and run with Docker (example):
+
+```bash
+# build image
+docker build -t mermaid-mcp:latest .
+
+# run container (example, mount project root and set env vars)
+docker run --rm -it \
+  -v "$PWD":/app \
+  -e PROJECT_ROOT=/app \
+  -e KROKI_BASE_URL=https://kroki.io \
+  -e KROKI_TIMEOUT=20 \
+  -e DIAGRAM_OUT_DIR=diagrams \
+  mermaid-mcp:latest
+```
+
 ---
 ## Installation & Setup 
 
@@ -205,7 +229,7 @@ You can set env vars in your shell OR in the MCP client config that launches the
 | Variable | Description | Used by |
 |---|---|---|
 | `HTTP_VERIFY` | Verify SSL certificates (as needed) | `server` |
-| `GITHUB_TOKEN` | Recommended to avoid GitHub rate limits; if set, adds an `Authorization` header | `github_client` |
+| `GITHUB_TOKEN` | Recommended to avoid GitHub rate limits; if set, adds an `Authorization` header | `src/clients/github/client.py` |
 
 
 Example (Windows)
@@ -327,7 +351,11 @@ Example selection (you choose based on what the repo contains):
 - `src/tools/read_file.py`
 - `src/tools/render_mermaid.py`
 - `src/core/interfaces.py`
-- `src/clients/github_client.py`
+- `src/clients/github/client.py`
+- `src/clients/github/refs.py`
+- `src/core/cache.py`
+- `src/core/pacing.py`
+- `src/core/rate_limiter.py`
 - `src/clients/kroki_client.py`
 
 ### Step 3 — Read the chosen files
@@ -388,3 +416,34 @@ flowchart LR
 Next, we plan to support more input sources beyond local folders and GitHub, so the server can generate Mermaid diagrams from additional code hosts and content providers (e.g., GitLab, Bitbucket, Azure DevOps Repos, as well as ZIP archives or single files via URL).
 
 This will build on a unified `Source` abstraction: each new source will implement the same contract (`list_files` and `read_file`), while the tools remain unchanged—extending support will require only adding a new source implementation and registering it in the factory.
+
+## Implementation notes (developer-facing)
+
+This repository includes a few implementation details worth knowing when running or extending the server:
+
+- GitHub client (`src/clients/github/client.py`): lightweight async client with small in-memory TTL caches for tree listings and file text, a concurrency cap (`asyncio.Semaphore`), a `core.pacing.Pacer` to prevent bursts, and a `core.rate_limiter.RateLimiter` helper to honor explicit server-side throttling signals (`Retry-After`, `X-RateLimit-Reset`). Raises project-specific exceptions on failures.
+
+- Ref resolution (`src/clients/github/refs.py`): resolves the requested ref and falls back to the repository default branch when needed.
+
+- Input normalization (`src/clients/github/inputs.py`): validates and normalizes `repo_url`, `ref`, and paths to keep GitHub calls predictable.
+
+- Caching (`src/core/cache.py`): `TTLCache` stores values with an expiration timestamp and evicts the oldest entries when the cache exceeds `maxsize`.
+
+- Rate limiting (`src/core/rate_limiter.py`): interprets GitHub throttling signals (429 + `Retry-After`, 403 + `X-RateLimit-Remaining=0` + `X-RateLimit-Reset`) and performs bounded sleeps to enable a single retry when appropriate.
+
+- Pacing (`src/core/pacing.py`): enforces a minimum interval between outbound requests to avoid burst traffic from concurrent tasks.
+
+- `src/tools/list_files.py`
+- `src/tools/read_file.py`
+- `src/tools/render_mermaid.py`
+- `src/clients/github_client.py`
+- `src/clients/kroki_client.py`
+- `src/sources/local_source.py`
+- `src/sources/github_source.py`
+- `src/core/cache.py`
+- `src/core/rate_limiter.py`
+
+These changes are documentation-only (no functional behavior was
+intentionally changed) and are intended to make the code easier to read
+and to help agents/LLMs use the tools without relying on external
+prompts.

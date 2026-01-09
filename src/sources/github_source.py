@@ -3,7 +3,7 @@ from __future__ import annotations
 import fnmatch
 from typing import List
 
-from clients.github_client import GitHubClient
+from clients.github import GitHubClient
 from core.errors import ValidationError
 
 
@@ -33,7 +33,7 @@ class GitHubSource:
             recursive=recursive
         )
 
-        # Normalize root path for comparison
+        # Normalize root path for comparison (strip leading/trailing separators)
         clean_root = root.strip("./").strip("/")
         
         filtered_files: List[str] = []

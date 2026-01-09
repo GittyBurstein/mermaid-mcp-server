@@ -6,7 +6,7 @@ resources and prompts, and starts the MCP server (stdio transport).
 
 from mcp.server.fastmcp import FastMCP
 
-from clients.github_client import GitHubClient
+from clients.github import GitHubClient
 from clients.kroki_client import KrokiClient
 from config import HTTP_VERIFY, KROKI_BASE_URL, KROKI_TIMEOUT
 

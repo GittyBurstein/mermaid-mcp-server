@@ -10,7 +10,7 @@ from typing import List, Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from clients.github_client import GitHubClient 
+from clients.github import GitHubClient
 from config import HTTP_VERIFY, PROJECT_ROOT
 from core.errors import ValidationError
 from core.models import SourceType
@@ -27,6 +27,25 @@ def register(mcp: FastMCP, *, github_client: Optional[GitHubClient] = None) -> N
         ref: str = "main",
         recursive: bool = True,
     ) -> List[str]:
+        """List files from a source and return a sorted list of paths.
+
+        Fetches file paths from a local directory or a GitHub repository.
+
+        Params:
+          - source: "local" or "github" (default: "local").
+          - root: path within the source to list from (default: ".").
+          - glob: glob pattern to filter files (default: "**/*").
+          - repo_url: required when source is "github" (HTTPS repo URL).
+          - ref: git reference to resolve (default: "main").
+          - recursive: include subdirectories (default: True).
+
+        Returns:
+          Sorted list of file path strings.
+
+        Raises:
+          ValidationError for invalid inputs; NotFoundError or source-specific
+          errors if the repository/ref/tree cannot be resolved.
+        """
         if source == "github" and (not repo_url or not repo_url.strip()):
             raise ValidationError("Missing repo_url for github source")
 

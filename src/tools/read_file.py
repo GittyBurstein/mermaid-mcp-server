@@ -10,7 +10,7 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from clients.github_client import GitHubClient  
+from clients.github import GitHubClient
 from config import HTTP_VERIFY, MAX_FILE_CHARS, PROJECT_ROOT
 from core.errors import ValidationError
 from core.models import SourceType
@@ -26,6 +26,24 @@ def register(mcp: FastMCP, *, github_client: Optional[GitHubClient] = None) -> N
         ref: str = "main",
         max_chars: int = MAX_FILE_CHARS,
     ) -> str:
+        """Read a text file from a source and return its UTF-8 contents.
+
+        Fetches a file from either a local filesystem or a GitHub repository.
+        Parameters:
+          - source: "local" or "github" (default: "local").
+          - path: file path relative to the source root (required).
+          - repo_url: required when source is "github" (e.g. https://github.com/owner/repo).
+          - ref: git reference to resolve (branch, tag, or SHA). Default: "main".
+          - max_chars: maximum characters to return (default from config).
+
+        Returns:
+          The file contents as a UTF-8 string. If the content exceeds max_chars
+          it will be truncated and the suffix "\n\n...[TRUNCATED]..." appended.
+
+        Raises:
+          ValidationError for missing/invalid inputs, and NotFoundError or
+          source-specific errors when the file or repository cannot be resolved.
+        """
         if not path or not path.strip():
             raise ValidationError("Missing file path")
 
