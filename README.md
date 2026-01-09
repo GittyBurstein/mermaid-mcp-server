@@ -6,6 +6,7 @@
 
 When working with a new codebase, it’s easy to lose time jumping between folders and files. This server provides a clean, tool-based workflow for agents to **discover**, **read**, and **visualize** a project — without guessing paths or inventing structure.
 
+
 ## Key features
 
 - **Local + GitHub sources**: analyze either a local project folder or a remote repository.
@@ -162,6 +163,7 @@ Accepts Mermaid text, renders it to a PNG via Kroki, returns `ImageContent`, and
     ├── resources/
     └── prompts/
 ```
+For architecture details, see: [ARCHITECTURE.md](./ARCHITECTURE.md)
 
 ### Docker (optional)
 
@@ -386,22 +388,13 @@ flowchart LR
   "mermaid": "<paste the Mermaid from Step 4 (or the generated Mermaid diagram)>",
   "title": "repo_to_diagram"
 }
-```
----
-## Recommended Agent Workflow (Pipeline)
-
-1. Use `list_files` to select relevant files  
-2. Use `read_file` to fetch real content (don’t guess)  
-3. Generate Mermaid from the content  
-4. Use `render_mermaid` to produce a PNG  
-
+``` 
 ---
 
 ## Security & Predictable Behavior
 
-- **Local files**: no access outside `PROJECT_ROOT`
-- **Output directory**: `DIAGRAM_OUT_DIR` must be inside `PROJECT_ROOT`
-- **GitHub**: works without a token, but `GITHUB_TOKEN` is recommended
+For security and predictable behavior, see: [Security boundaries](./ARCHITECTURE.md#security-boundaries-and-predictable-behavior)
+
 
 ---
 
