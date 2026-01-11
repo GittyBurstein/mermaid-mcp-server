@@ -25,7 +25,7 @@ def test_github_source_requires_repo_url():
 
 
 @pytest.mark.asyncio
-async def test_github_source_list_files_filters_root_and_glob():
+async def test_github_source_list_files_filters_root_and_glob_recursive_py():
     fake = FakeGitHubClient(files=[
         "README.md",
         "src/app.py",
@@ -35,7 +35,55 @@ async def test_github_source_list_files_filters_root_and_glob():
 
     src = GitHubSource(client=fake, repo_url="https://github.com/octocat/Hello-World", ref="main")
 
+    # Glob is relative to root ("src"), so "**/*.py" matches both direct + nested .py files.
     out = await src.list_files(root="src", glob="**/*.py", recursive=True)
+    assert out == ["src/app.py", "src/utils/helpers.py"]
+
+
+@pytest.mark.asyncio
+async def test_github_source_list_files_glob_is_relative_to_root_non_recursive_pattern():
+    fake = FakeGitHubClient(files=[
+        "src/app.py",
+        "src/utils/helpers.py",
+        "src/utils/more/deep.py",
+    ])
+
+    src = GitHubSource(client=fake, repo_url="https://github.com/octocat/Hello-World", ref="main")
+
+    # With the "new" behavior, glob="*.py" is checked relative to root,
+    # so it should match ONLY files directly under "src/".
+    out = await src.list_files(root="src", glob="*.py", recursive=True)
+    assert out == ["src/app.py"]
+
+
+@pytest.mark.asyncio
+async def test_github_source_list_files_glob_relative_subdir_under_root():
+    fake = FakeGitHubClient(files=[
+        "src/app.py",
+        "src/utils/helpers.py",
+        "src/utils/other.txt",
+        "src/docs/guide.md",
+    ])
+
+    src = GitHubSource(client=fake, repo_url="https://github.com/octocat/Hello-World", ref="main")
+
+    # glob is relative to root, so "utils/*.py" should match "src/utils/helpers.py"
+    out = await src.list_files(root="src", glob="utils/*.py", recursive=True)
+    assert out == ["src/utils/helpers.py"]
+
+
+@pytest.mark.asyncio
+async def test_github_source_list_files_root_normalization():
+    fake = FakeGitHubClient(files=[
+        "src/app.py",
+        "src/utils/helpers.py",
+        "docs/guide.md",
+    ])
+
+    src = GitHubSource(client=fake, repo_url="https://github.com/octocat/Hello-World", ref="main")
+
+    # root="./src/" should behave the same as "src"
+    out = await src.list_files(root="./src/", glob="**/*.py", recursive=True)
     assert out == ["src/app.py", "src/utils/helpers.py"]
 
 

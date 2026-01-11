@@ -35,7 +35,7 @@ def get_file_source(
     2. If source == "github" (explicitly requested) -> Use GitHubSource.
     3. Default -> Use LocalSource.
     """
-        # Validate explicit source values (tests expect ValidationError for unknown)
+    # Validate explicit source values (tests expect ValidationError for unknown)
     if source is not None and source not in ("local", "github"):
         raise ValidationError(f"Unknown source: {source}")
     if (repo_url and repo_url.strip()) or source == "github":
