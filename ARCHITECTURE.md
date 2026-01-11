@@ -9,12 +9,13 @@ This document explains the architecture of **mermaid-mcp**: how responsibilities
 - [Architecture at a glance](#architecture-at-a-glance)
 - [Directory map (where things live)](#directory-map-where-things-live)
 - [Request flow](#request-flow)
-- [The Source contract (the core idea)](#the-source-contract-the-core-idea)
+- [The FileSource contract (the core idea)](#the-filesource-contract-the-core-idea)
 - [Source Factory (how backends are selected)](#source-factory-how-backends-are-selected)
 - [Component responsibilities](#component-responsibilities)
 - [Path and filtering semantics (stable behavior)](#path-and-filtering-semantics-stable-behavior)
 - [Cross-cutting policies (why they exist)](#cross-cutting-policies-why-they-exist)
 - [Interaction diagram (high-level)](#interaction-diagram-high-level)
+- [Prompts & Resources](#prompts--resources)
 - [Error boundaries (who raises what)](#error-boundaries-who-raises-what)
 - [Security boundaries and predictable behavior](#security-boundaries-and-predictable-behavior)
 - [Extending the system: adding a new source](#extending-the-system-adding-a-new-source)
@@ -57,6 +58,9 @@ src/
   sources/                # Source implementations + source factory
   clients/                # External service wrappers (GitHub / Kroki)
   core/                   # Shared contracts, errors, models, policies (cache/pacing/rate limiting)
+  prompts/                # Server-registered prompts used to generate Mermaid (src/prompts/)
+  resources/              # Packaged static resources (Mermaid styles, templates) (src/resources/)
+
 ```
 
 ---
@@ -75,18 +79,18 @@ A typical end-to-end pipeline:
 
 ---
 
-## The Source contract (the core idea)
+## The FileSource contract (the core idea)
 
-The Source contract is the interface that all backends must implement. Tools interact with sources only through this contract, which keeps tools backend-agnostic.
+The `FileSource` contract is the interface that all backends must implement. Tools interact with sources only through this contract, which keeps tools backend-agnostic and makes new backends pluggable without changing tools.
 
 ### Contract surface
 
-The Source instance is created by the factory with any backend configuration baked in (e.g., `project_root` for local, `repo_url`/`ref` for GitHub). The tool layer does not perform backend-specific logic beyond selecting/instantiating the source.
+The `FileSource` instance is created by the factory with any backend configuration baked in (e.g., `project_root` for local, `repo_url`/`ref` for GitHub). The tool layer does not perform backend-specific logic beyond selecting/instantiating the source.
 
 Pseudo-signature (conceptual):
 
 ```python
-class Source:
+class FileSource:
     async def list_files(
         self,
         *,
@@ -107,7 +111,7 @@ class Source:
 
 ### Contract guarantees
 
-All Source implementations must guarantee:
+All `FileSource` implementations must guarantee:
 
 - Normalized paths in results: `list_files(...)` returns paths in a stable, normalized form (recommended: forward slashes `/`, no leading `./`, no trailing slashes).
 - Relative-to-source semantics: `root` and `path` are interpreted relative to the source’s base (local project root or remote repo root).
@@ -163,7 +167,7 @@ What does NOT belong here:
 
 2) Sources (backend implementations)
 
-Sources implement the Source contract and own backend-specific concerns.
+Sources implement the `FileSource` contract and own backend-specific concerns.
 
 Local source:
 
@@ -255,6 +259,28 @@ flowchart LR
   KC --> K[(Kroki)]
   T3 --> OUT[(PNG bytes + saved file)]
 ```
+
+---
+
+## Prompts & Resources
+
+This project includes two supporting concepts that are important for agent-driven workflows and consistent Mermaid generation: server-registered prompts and packaged resources.
+
+Prompts
+- The server exposes canonical prompts that agents/clients can use when generating Mermaid diagrams. The canonical prompt enforces the pipeline (list_files → read_file → render_mermaid), style rules, and requirements such as embedding a style resource unchanged.
+- Location: `src/prompts/` (the main prompt is `src/prompts/mermaid_prompt.py`, registered under the name `generate_mermaid_canonical`).
+- Usage: MCP clients that support server-side prompts can select `generate_mermaid_canonical` so agents receive a stable, curated instruction set. If a client cannot use server-side prompts, copy the prompt text from `src/prompts/mermaid_prompt.py` and keep local copies in sync with repository changes.
+- Rationale: keeping a canonical prompt on the server ensures consistency across agents and reduces errors from ad-hoc prompt variants.
+
+Resources
+- The project bundles static resources used by prompts and Mermaid diagrams (for example, color/style templates).
+- Location: `src/resources/` (e.g., `mermaid_style_blue_flowchart.mmd` and `mermaid_styles.py`).
+- Access: prompts expect resources to be available via the resource URI scheme used by the prompt (for example `mermaid://styles/blue-flowchart`). Tools or prompts that require a resource should read it from `src/resources/` and embed it into generated Mermaid text unchanged.
+- Rationale: shipping canonical styles and other small assets with the server ensures diagrams are visually consistent and that agents do not rely on external resources at render time.
+
+Operational notes
+- When updating prompts or resources, update tests and documentation to avoid breaking agents that rely on the canonical prompt or style names.
+- Prompts can reference resource names; if a resource filename or name changes, update both the prompt and any code that resolves resource URIs.
 
 ---
 

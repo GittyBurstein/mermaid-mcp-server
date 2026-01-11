@@ -47,7 +47,7 @@ class LocalSource:
             for p in base.glob(glob):
                 if p.is_file():
                    # Use POSIX-style paths to keep results stable across OSes
-                   out.append(p.relative_to(base).as_posix())
+                   out.append(p.relative_to(self._project_root).as_posix())
             return sorted(out)
 
         # Offload blocking filesystem IO to a thread to keep async loop responsive

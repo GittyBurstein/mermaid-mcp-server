@@ -160,8 +160,8 @@ Accepts Mermaid text, renders it to a PNG via Kroki, returns `ImageContent`, and
     │       ├── client.py          # HTTP + policy (cache/rate/pacing)
     │       ├── inputs.py          # normalize/validate inputs
     │       └── refs.py            # resolve refs (+ fallback)
-    ├── resources/
-    └── prompts/
+    ├── resources/                 # Mermaid styles and small assets
+    └── prompts/                   # Server-side canonical prompts
 ```
 For architecture details, see: [ARCHITECTURE.md](./ARCHITECTURE.md)
 

@@ -40,7 +40,7 @@ class GitHubSource:
         
         for path in all_files:
             # 1. Check if the file is within the requested root directory
-            if clean_root and not path.startswith(clean_root):
+            if clean_root and not (path == clean_root or path.startswith(clean_root + "/")):
                 continue
             
             # 2. Check if the file matches the glob pattern
