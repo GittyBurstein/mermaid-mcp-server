@@ -151,6 +151,7 @@ Accepts Mermaid text, renders it to a PNG via Kroki, returns `ImageContent`, and
     │   ├── interfaces.py          # Source contract that shapes all implementations
     │   ├── models.py
     │   ├── errors.py
+    │   ├── paths.py               # Shared path normalization + glob semantics (incl. **)
     │   ├── cache.py
     │   ├── pacing.py
     │   └── rate_limiter.py

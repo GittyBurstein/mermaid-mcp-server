@@ -4,6 +4,7 @@ import re
 from typing import Tuple
 
 from core.errors import ValidationError
+from core.paths import normalize_posix_relpath
 
 
 _REPO_URL_RE = re.compile(r"^https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$")
@@ -25,7 +26,11 @@ def normalize_ref(ref: str) -> str:
 
 
 def normalize_path(path: str) -> str:
-    path_clean = (path or "").strip().lstrip("/")
+    # Keep GitHub paths stable and OS-independent:
+    # - Convert "\" to "/"
+    # - Drop leading "/" and repeated "./"
+    # - Require a non-empty relative path
+    path_clean = normalize_posix_relpath(path)
     if not path_clean:
         raise ValidationError("path must be non-empty")
     return path_clean

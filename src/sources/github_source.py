@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import fnmatch
-from typing import List, Tuple
+from typing import List
 
 from clients.github import GitHubClient
 from core.errors import ValidationError
+from core.paths import clean_root, glob_match, normalize_posix_relpath
 
 
 """GitHub-backed FileSource implementation.
@@ -12,45 +12,6 @@ from core.errors import ValidationError
 - `root` filters by directory prefix inside the repo.
 - `glob` is matched relative to `root` (consistent with LocalSource behavior).
 """
-
-
-def _clean_root(root: str) -> str:
-    # Normalize root to POSIX and treat '.', './', '/' as repository root
-    r = (root or "").strip().replace("\\", "/")
-    if r in ("", ".", "./", "/"):
-        return ""
-    while r.startswith("./"):
-        r = r[2:]
-    return r.strip("/")
-
-
-def _split_posix(p: str) -> Tuple[str, ...]:
-    # Split a POSIX path into non-empty segments
-    p = (p or "").strip().replace("\\", "/").strip("/")
-    if not p:
-        return tuple()
-    return tuple(seg for seg in p.split("/") if seg)
-
-
-def _glob_match(rel_path: str, pattern: str) -> bool:
-    # Component-wise glob matcher with '**' support
-    parts = _split_posix(rel_path)
-    pat = (pattern or "").strip().replace("\\", "/").strip("/")
-    if not pat:
-        pat = "**/*"
-    pats = _split_posix(pat)
-
-    def rec(i: int, j: int) -> bool:
-        if j == len(pats):
-            return i == len(parts)
-
-        token = pats[j]
-        if token == "**":
-            return rec(i, j + 1) or (i < len(parts) and rec(i + 1, j))
-
-        return i < len(parts) and fnmatch.fnmatchcase(parts[i], token) and rec(i + 1, j + 1)
-
-    return rec(0, 0)
 
 
 class GitHubSource:
@@ -69,40 +30,38 @@ class GitHubSource:
             recursive=recursive,
         )
 
-        clean_root = _clean_root(root)
+        clean_root_val = clean_root(root)
         clean_glob = (glob or "").strip()
 
         out: List[str] = []
 
         for raw in all_files:
-            # Normalize returned path to POSIX and remove leading markers
-            path = (raw or "").strip().replace("\\", "/").lstrip("/")
-            while path.startswith("./"):
-                path = path[2:]
+            # Normalize returned path to a clean POSIX-style relative path.
+            path = normalize_posix_relpath(raw)
             if not path:
                 continue
 
-            # If a root was requested ensure the path is inside it
-            if clean_root:
-                if not (path == clean_root or path.startswith(clean_root + "/")):
+            # If a root was requested, ensure the path is inside it.
+            # Then compute rel_path relative to that root for glob matching.
+            if clean_root_val:
+                if not (path == clean_root_val or path.startswith(clean_root_val + "/")):
                     continue
-                if path == clean_root:
+                if path == clean_root_val:
+                    # Root itself is a directory marker, not a file.
                     continue
-                rel_path = path[len(clean_root) + 1 :]
+                rel_path = path[len(clean_root_val) + 1 :]
             else:
                 rel_path = path
 
-            # Match glob relative to root
-            if _glob_match(rel_path, clean_glob):
+            # Match glob relative to root (same semantics as LocalSource).
+            if glob_match(rel_path, clean_glob):
                 out.append(path)
 
         return sorted(out)
 
     async def read_file(self, *, path: str, max_chars: int) -> str:
-        # Normalize and validate read path
-        p = (path or "").strip().replace("\\", "/").lstrip("/")
-        while p.startswith("./"):
-            p = p[2:]
+        # Normalize and validate read path.
+        p = normalize_posix_relpath(path)
         if not p:
             raise ValidationError("Missing path")
 

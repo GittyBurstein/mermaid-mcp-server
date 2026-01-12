@@ -57,7 +57,7 @@ src/
   tools/                  # MCP tools (list_files / read_file / render_mermaid)
   sources/                # Source implementations + source factory
   clients/                # External service wrappers (GitHub / Kroki)
-  core/                   # Shared contracts, errors, models, policies (cache/pacing/rate limiting)
+  core/                   # Shared contracts, errors, models, policies, and path semantics (paths.py)
   prompts/                # Server-registered prompts used to generate Mermaid (src/prompts/)
   resources/              # Packaged static resources (Mermaid styles, templates) (src/resources/)
 
@@ -205,6 +205,7 @@ Core hosts reusable building blocks used across the project:
 
 - `errors` — project-specific exception types
 - `models` — shared data structures
+- `paths` — shared path normalization + glob semantics incl. `**`
 - policy primitives (caching / pacing / rate limiting) used by networked components
 
 Core is where "how we behave" lives, preventing behavioral drift across modules.
@@ -220,6 +221,7 @@ To keep behavior predictable across sources:
 - `recursive` controls directory traversal depth for backends that support it.
 
 Recommended rule: tools apply the same parameter meanings for both local and remote. If a backend cannot support a parameter precisely, it should approximate reasonably but keep the same output invariants (normalized paths, stable ordering if applicable).
+Implementation note: shared path normalization and `glob`/`**` matching are centralized in `core/paths.py` to prevent behavioral drift.
 
 ---
 
