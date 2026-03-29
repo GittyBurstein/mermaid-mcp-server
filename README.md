@@ -185,6 +185,10 @@ docker run --rm -it \
 ```
 
 ---
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/gittyburstein-mermaid-mcp-server).
+
 ## Installation & Setup 
 
 ### 1) Clone the repo
